@@ -1,0 +1,44 @@
+{
+  "pair": {
+    "spot_symbol": "NEAR-USDT",
+    "futures_symbol": "NEARUSDTM"
+  },
+  "rows": {
+    "raw": 13739,
+    "features": 13666,
+    "train": 9566,
+    "test": 4100
+  },
+  "model_path": "C:\\Users\\admin\\Desktop\\stock_market_project\\lecture17-master\\lecture17-master\\models\\project_near_hourly_qlearning.json",
+  "metrics_path": "C:\\Users\\admin\\Desktop\\stock_market_project\\lecture17-master\\lecture17-master\\reports\\project_near_hourly\\metrics.csv",
+  "baseline_backtest_path": "C:\\Users\\admin\\Desktop\\stock_market_project\\lecture17-master\\lecture17-master\\reports\\project_near_hourly\\baseline_backtest.csv",
+  "rl_backtest_path": "C:\\Users\\admin\\Desktop\\stock_market_project\\lecture17-master\\lecture17-master\\reports\\project_near_hourly\\rl_backtest.csv",
+  "equity_curve_path": "C:\\Users\\admin\\Desktop\\stock_market_project\\lecture17-master\\lecture17-master\\reports\\project_near_hourly\\equity_curve.png",
+  "market_plot_path": "C:\\Users\\admin\\Desktop\\stock_market_project\\lecture17-master\\lecture17-master\\reports\\project_near_hourly\\market_and_positions.png",
+  "metrics": [
+    {
+      "strategy": "baseline_zscore",
+      "final_equity": 10377.236027198971,
+      "total_return": 0.037723602719897054,
+      "cagr": 0.08232653899456999,
+      "sharpe": 4.097320266597107,
+      "max_drawdown": -0.003559056577190356,
+      "annualized_volatility": 0.019373121647892528,
+      "turnover_events": 67.0,
+      "exposure_ratio": 0.022688460600146378,
+      "hit_rate": 0.014149792632349353
+    },
+    {
+      "strategy": "rl_agent",
+      "final_equity": 10276.518055052353,
+      "total_return": 0.027651805505235272,
+      "cagr": 0.0600071263146833,
+      "sharpe": 4.064422167125097,
+      "max_drawdown": -0.001260620375001631,
+      "annualized_volatility": 0.014377414714319463,
+      "turnover_events": 60.0,
+      "exposure_ratio": 0.01658941205171993,
+      "hit_rate": 0.011710173212978776
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "api": {
+    "api_key_env": "KUCOIN_API_KEY",
+    "api_secret_env": "KUCOIN_API_SECRET",
+    "api_passphrase_env": "KUCOIN_API_PASSPHRASE",
+    "is_sandbox": false,
+    "spot_base_url": "https://api.kucoin.com",
+    "futures_base_url": "https://api-futures.kucoin.com"
+  },
+  "data": {
+    "spot_symbol": "NEAR-USDT",
+    "futures_symbol": "NEARUSDTM",
+    "interval": "1hour",
+    "futures_granularity_minutes": 60,
+    "lookback_minutes": 1051200
+  },
+  "features": {
+    "zscore_window": 72,
+    "volatility_window": 48,
+    "volume_window": 24,
+    "basis_momentum_lag": 6,
+    "correlation_window": 48,
+    "rsi_window": 14,
+    "ema_fast_window": 12,
+    "ema_slow_window": 36
+  },
+  "baseline": {
+    "enter_zscore": 3.0,
+    "exit_zscore": 0.5
+  },
+  "rl": {
+    "episodes": 80,
+    "alpha": 0.08,
+    "gamma": 0.98,
+    "epsilon_start": 0.10,
+    "epsilon_end": 0.01,
+    "epsilon_decay": 0.995,
+    "use_baseline_guidance": true,
+    "imitation_start": 0.90,
+    "imitation_end": 0.40,
+    "imitation_decay": 0.995,
+    "baseline_bonus": 0.001,
+    "max_steps_per_episode": 1500,
+    "quantile_bins": [0.10, 0.20, 0.80, 0.90, 0.95, 0.99]
+  },
+  "execution": {
+    "quote_notional_usdt": 100.0,
+    "futures_contract_multiplier": 1.0,
+    "fee_rate_per_rebalance": 0.0004,
+    "risk_penalty": 0.00005,
+    "leverage": 2,
+    "poll_seconds": 60,
+    "default_paper_mode": true,
+    "allow_spot_short": false
+  },
+  "research": {
+    "train_fraction": 0.70,
+    "initial_capital": 10000.0,
+    "min_train_rows": 1000,
+    "min_test_rows": 300
+  }
+}

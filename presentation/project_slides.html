@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>KuCoin NEAR Basis RL Project</title>
+  <style>
+    :root {
+      --bg: #f3efe6;
+      --ink: #14213d;
+      --accent: #ef8354;
+      --muted: #56606b;
+      --panel: #fffaf2;
+      --line: #d8cfc1;
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+    }
+
+    body {
+      counter-reset: slide;
+    }
+
+    .slide {
+      width: 100vw;
+      min-height: 100vh;
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(circle at top right, rgba(239, 131, 84, 0.18), transparent 30%),
+        linear-gradient(135deg, rgba(20, 33, 61, 0.03), rgba(20, 33, 61, 0)),
+        var(--bg);
+      page-break-after: always;
+    }
+
+    .slide:last-child {
+      page-break-after: auto;
+    }
+
+    .kicker {
+      font-size: 16px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 18px;
+      font-weight: 700;
+    }
+
+    h1, h2 {
+      margin: 0 0 18px 0;
+      line-height: 1.05;
+    }
+
+    h1 {
+      font-size: 42px;
+      max-width: 920px;
+    }
+
+    h2 {
+      font-size: 34px;
+    }
+
+    p, li {
+      font-size: 20px;
+      line-height: 1.45;
+      color: var(--ink);
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 24px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 22px 24px;
+      box-shadow: 0 18px 40px rgba(20, 33, 61, 0.08);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 28px;
+      margin-top: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 18px;
+      background: var(--panel);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(20, 33, 61, 0.06);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 15px;
+      margin-top: 24px;
+    }
+
+    .footer::after {
+      counter-increment: slide;
+      content: counter(slide);
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .small {
+      font-size: 17px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <section class="slide">
+    <div>
+      <div class="kicker">Crypto RL Project</div>
+      <h1>Дельта-нейтральная стратегия на KuCoin: NEAR spot + perpetual futures</h1>
+      <p>Цель проекта: построить воспроизводимую торговую систему с baseline-моделью и RL-агентом для basis mean reversion, пригодную как для бэктеста, так и для live/shadow запуска через PowerShell или bash.</p>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><span>Пара</span><strong>NEAR-USDT / NEARUSDTM</strong></div>
+      <div class="metric"><span>Период данных</span><strong>01.01.2024 - 01.03.2026</strong></div>
+      <div class="metric"><span>Частота</span><strong>1 hour</strong></div>
+      <div class="metric"><span>Out-of-sample CAGR RL</span><strong>6.00%</strong></div>
+    </div>
+    <div class="footer"><span>Курс по ML и RL в трейдинге</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <div class="kicker">Task</div>
+      <h2>Постановка задачи</h2>
+      <div class="grid-2">
+        <div class="panel">
+          <p><strong>Идея стратегии.</strong> Basis определяется как <code>(F - S) / S</code>, где <code>F</code> - цена perpetual futures, <code>S</code> - цена spot. При сильных отклонениях basis от исторической нормы стратегия открывает дельта-нейтральную позицию в расчёте на возврат basis к среднему.</p>
+          <p><strong>Цель RL.</strong> Научиться решать, когда ребалансировать позицию: открыть short basis, выйти в flat или открыть long basis.</p>
+        </div>
+        <div class="panel">
+          <ul>
+            <li>Сбор исторических OHLCV с KuCoin.</li>
+            <li>Feature engineering и z-score baseline.</li>
+            <li>Q-learning агент поверх компактного state-space.</li>
+            <li>Честный train/test split по времени без data leakage.</li>
+            <li>Backtest с Sharpe, Max Drawdown, CAGR и Equity Curve.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>Формализация проекта</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <div class="kicker">Data</div>
+      <h2>Данные и признаки</h2>
+      <div class="grid-2">
+        <div class="panel">
+          <p><strong>Источник:</strong> публичные REST endpoints KuCoin для spot и futures.</p>
+          <p><strong>Объём:</strong> 13,739 merged hourly rows, после rolling-преобразований 13,666 feature rows.</p>
+          <p><strong>Split:</strong> 70% train, 30% test.</p>
+        </div>
+        <div class="panel">
+          <p><strong>Полный feature set:</strong></p>
+          <ul>
+            <li>spot/futures returns</li>
+            <li>spot/futures volatility</li>
+            <li>basis volatility</li>
+            <li>volume imbalance</li>
+            <li>basis momentum</li>
+            <li>rolling correlation</li>
+            <li>spot RSI / futures RSI</li>
+            <li>basis EMA gap</li>
+          </ul>
+        </div>
+      </div>
+      <p class="small">Для RL state-space оставлен только наиболее устойчивый признак <code>basis_zscore</code> плюс текущая позиция. Это уменьшает разреженность Q-таблицы и делает обучение стабильнее.</p>
+    </div>
+    <div class="footer"><span>Data pipeline</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <div class="kicker">Model</div>
+      <h2>Baseline и RL-архитектура</h2>
+      <div class="grid-2">
+        <div class="panel">
+          <p><strong>Baseline:</strong> z-score mean reversion.</p>
+          <ul>
+            <li>если <code>z >= 3.0</code> → short basis</li>
+            <li>если <code>|z| <= 0.5</code> → close</li>
+            <li>если <code>z <= -3.0</code> → long basis</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <p><strong>RL:</strong> tabular Q-learning.</p>
+          <ul>
+            <li><strong>State:</strong> <code>[basis_zscore, current_position]</code></li>
+            <li><strong>Actions:</strong> short basis / flat / long basis</li>
+            <li><strong>Reward:</strong> delta(basis) - fee - risk penalty</li>
+            <li><strong>Guidance:</strong> baseline imitation during training</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>Архитектура</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <div class="kicker">Protocol</div>
+      <h2>Бэктест-процедура</h2>
+      <div class="grid-2">
+        <div class="panel">
+          <ul>
+            <li>Train: 08.08.2024 01:00 UTC - 10.09.2025 22:00 UTC</li>
+            <li>Test: 10.09.2025 23:00 UTC - 28.02.2026 23:00 UTC</li>
+            <li>Initial capital: 10,000 USDT</li>
+            <li>Research fee assumption: 0.0004 per rebalance</li>
+            <li>Risk penalty: 0.00005 × |position| × |zscore|</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <p><strong>Метрики:</strong></p>
+          <ul>
+            <li>Total Return</li>
+            <li>CAGR</li>
+            <li>Sharpe Ratio</li>
+            <li>Max Drawdown</li>
+            <li>Turnover / Exposure</li>
+          </ul>
+        </div>
+      </div>
+      <p class="small">Для unseen states в live/shadow и backtest агент безопасно уходит в <code>flat</code>, а не делает случайное действие по пустой Q-таблице.</p>
+    </div>
+    <div class="footer"><span>Evaluation setup</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <div class="kicker">Results</div>
+      <h2>Результаты на out-of-sample периоде</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Стратегия</th>
+            <th>Total Return</th>
+            <th>CAGR</th>
+            <th>Sharpe</th>
+            <th>Max Drawdown</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Baseline z-score</td>
+            <td>3.77%</td>
+            <td>8.23%</td>
+            <td>4.10</td>
+            <td>-0.36%</td>
+          </tr>
+          <tr>
+            <td>RL agent</td>
+            <td>2.77%</td>
+            <td>6.00%</td>
+            <td>4.06</td>
+            <td>-0.13%</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="grid-2" style="margin-top: 24px;">
+        <div class="panel">
+          <p><strong>Что видно:</strong> baseline даёт чуть более высокий CAGR, но RL-агент показывает меньшую просадку и меньшую вовлечённость в рынок.</p>
+        </div>
+        <div class="panel">
+          <p><strong>Практический вывод:</strong> RL можно использовать как более осторожную policy-обёртку вокруг basis-сигнала, если приоритетом является плавность equity curve.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>Backtest summary</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <div class="kicker">Deploy</div>
+      <h2>Воспроизводимость и live-ready контур</h2>
+      <div class="grid-2">
+        <div class="panel">
+          <p><strong>Research CLI:</strong></p>
+          <p><code>python run_research_pipeline.py --config config/project_near_hourly.json ...</code></p>
+          <p><strong>PowerShell:</strong> <code>.\scripts\bot.ps1 -Action research</code></p>
+          <p><strong>Tests:</strong> <code>python -m pytest tests -q</code></p>
+        </div>
+        <div class="panel">
+          <p><strong>KuCoin deployment:</strong></p>
+          <p><code>python run_trade_signal.py --mode shadow --once ...</code></p>
+          <p><code>python run_trade_signal.py --mode live --run-real-order ...</code></p>
+          <p class="small">Для cash spot-аккаунтов short spot отключён; для полностью симметричного live-р режима нужен margin-enabled spot shorting или модификация execution layer.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>Reproducibility</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <div class="kicker">Conclusion</div>
+      <h2>Выводы</h2>
+      <ul>
+        <li>Собран полный воспроизводимый pipeline: data -> features -> baseline -> RL -> backtest -> plots -> live scripts.</li>
+        <li>На test split baseline и RL показали положительный CAGR, причём RL достиг <strong>6.00%</strong>.</li>
+        <li>Компактное RL-state-space оказалось устойчивее широкого набора признаков для tabular Q-learning.</li>
+        <li>Проект готов к публикации в приватный GitHub-репозиторий и демонстрации через notebook / PDF / PowerShell.</li>
+      </ul>
+    </div>
+    <div class="footer"><span>Final remarks</span></div>
+  </section>
+</body>
+</html>

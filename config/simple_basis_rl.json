@@ -1,0 +1,16 @@
+{
+  "symbol_spot": "NEAR-USDT",
+  "symbol_perp": "NEAR-USDTM",
+  "timeframe": "1m",
+  "rolling_window": 100,
+  "history_lookback_bars": 500,
+  "entry_z": 2,
+  "exit_z": 0.5,
+  "capital_usd": 1000,
+  "contract_size": 1,
+  "commission_bps": 5,
+  "allow_short_spot": true,
+  "round_mode": "round",
+  "rl_model_path": "models/ppo_basis_near.zip",
+  "train_timesteps": 50000
+}
