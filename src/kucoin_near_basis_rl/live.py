@@ -9,6 +9,7 @@ import numpy as np
 from .baseline import ACTION_TO_POSITION, POSITION_TO_ACTION
 from .config import load_config
 from .features import FEATURE_COLUMNS, build_feature_frame
+from .finnhub_news import build_news_feature_frame
 from .kucoin_api import KuCoinExecutionClient, KuCoinPublicDataClient
 from .qlearning import load_model_artifact
 
@@ -33,7 +34,8 @@ def run_live(config_path: str, model_path: str, paper: bool, once: bool) -> None
         try:
             start_dt, end_dt = data_client.utc_lookback(cfg.data.lookback_minutes)
             raw = data_client.fetch_merged_candles(cfg.data, start_dt=start_dt, end_dt=end_dt)
-            feature_frame = build_feature_frame(raw, cfg.features)
+            news_feature_frame = build_news_feature_frame(raw, cfg.news)
+            feature_frame = build_feature_frame(raw, cfg.features, news_feature_frame=news_feature_frame)
             if feature_frame.empty:
                 raise RuntimeError("Feature frame is empty in live loop.")
 

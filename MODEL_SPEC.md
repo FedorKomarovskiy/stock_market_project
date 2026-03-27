@@ -61,7 +61,22 @@ Algorithm:
 - tabular Q-learning
 
 State:
+- `basis`
+- `spot_return`
+- `futures_return`
+- `basis_return`
 - `basis_zscore`
+- `spot_volatility`
+- `futures_volatility`
+- `basis_volatility`
+- `volume_imbalance`
+- `basis_momentum`
+- `rolling_correlation`
+- `spot_rsi`
+- `futures_rsi`
+- `basis_ema_fast`
+- `basis_ema_slow`
+- `basis_ema_gap`
 - `current_position`
 
 Action space:
@@ -70,7 +85,7 @@ Action space:
 - `2 -> long basis`
 
 Important implementation note:
-- the repository computes a broad feature set for analysis, but the RL state is intentionally compact to reduce sparsity in the Q-table
+- the RL state now uses the full engineered feature vector plus `current_position`
 - unseen states in backtest/live default to `flat` instead of random action selection
 
 ## 6. Reward

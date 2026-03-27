@@ -11,6 +11,7 @@ from .baseline import BaselinePolicy
 from .config import AppConfig, load_config
 from .env import BasisTradingEnv
 from .features import FEATURE_COLUMNS, build_feature_frame
+from .finnhub_news import build_news_feature_frame
 from .kucoin_api import KuCoinPublicDataClient
 from .qlearning import (
     QLearningAgent,
@@ -127,7 +128,8 @@ def run_training(
             start_dt, end_dt = data_client.utc_lookback(cfg.data.lookback_minutes)
         raw = data_client.fetch_merged_candles(cfg.data, start_dt=start_dt, end_dt=end_dt)
 
-    feature_frame = build_feature_frame(raw, cfg.features)
+    news_feature_frame = build_news_feature_frame(raw, cfg.news)
+    feature_frame = build_feature_frame(raw, cfg.features, news_feature_frame=news_feature_frame)
     artifacts = train_agent_from_features(feature_frame, cfg)
 
     save_model_artifact(

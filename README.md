@@ -16,7 +16,7 @@ Project requirements covered:
 - download of historical OHLCV data for more than 2 years
 - feature engineering: returns, volatility, volume imbalance, rolling correlation, RSI, EMA-gap
 - baseline model: z-score basis strategy
-- RL formalization: `state = [basis_zscore, current_position]`, `action in {-1, 0, +1}`
+- RL formalization: `state = engineered_features + current_position`, `action in {-1, 0, +1}`
 - train/test time split without leakage
 - backtest with `Sharpe`, `Max Drawdown`, `CAGR`
 - equity-curve and market/position charts
@@ -26,6 +26,7 @@ Project requirements covered:
 ## 2. Repository structure
 
 - `run_research_pipeline.py` - end-to-end research pipeline for the course project
+- `run_gb_forecast.py` - gradient boosting price forecast on the last 3 years of history
 - `run_trade_signal.py` - launcher for `train / shadow / live`
 - `trade_signal_executor_kucoin.py` - execution entrypoint
 - `config/project_near_hourly.json` - research config used for the final backtest
@@ -142,12 +143,11 @@ Interpretation:
 ## 6. State, action and reward
 
 State used by the RL agent:
-- `basis_zscore`
-- `current_position`
-
-Additional engineered columns kept for analysis and notebook:
+- `basis`
 - `spot_return`
 - `futures_return`
+- `basis_return`
+- `basis_zscore`
 - `spot_volatility`
 - `futures_volatility`
 - `basis_volatility`
@@ -156,7 +156,10 @@ Additional engineered columns kept for analysis and notebook:
 - `rolling_correlation`
 - `spot_rsi`
 - `futures_rsi`
+- `basis_ema_fast`
+- `basis_ema_slow`
 - `basis_ema_gap`
+- `current_position`
 
 Actions:
 - `0 -> short basis`
@@ -167,6 +170,17 @@ Reward per step:
 - `position * delta(basis)`
 - minus rebalance fee
 - minus risk penalty for holding exposure under extreme z-score
+
+Gradient boosting forecast:
+- trains two boosting models on the same engineered dataset
+- targets: next-bar `spot_close` and next-bar `futures_close`
+- default download window: last 3 years from the current UTC timestamp
+
+Run GB forecast:
+
+```bash
+python run_gb_forecast.py
+```
 
 ## 7. Notebook and presentation
 

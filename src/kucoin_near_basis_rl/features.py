@@ -4,10 +4,27 @@ import numpy as np
 import pandas as pd
 
 from .config import FeatureConfig
+from .finnhub_news import NEWS_FEATURE_COLUMNS
 
 
 FEATURE_COLUMNS = [
+    "basis",
+    "spot_return",
+    "futures_return",
+    "basis_return",
     "basis_zscore",
+    "spot_volatility",
+    "futures_volatility",
+    "basis_volatility",
+    "volume_imbalance",
+    "basis_momentum",
+    "rolling_correlation",
+    "spot_rsi",
+    "futures_rsi",
+    "basis_ema_fast",
+    "basis_ema_slow",
+    "basis_ema_gap",
+    *NEWS_FEATURE_COLUMNS,
 ]
 
 
@@ -21,7 +38,11 @@ def _rsi(price_series: pd.Series, window: int) -> pd.Series:
     return 100.0 - (100.0 / (1.0 + rs))
 
 
-def build_feature_frame(raw_frame: pd.DataFrame, cfg: FeatureConfig) -> pd.DataFrame:
+def build_feature_frame(
+    raw_frame: pd.DataFrame,
+    cfg: FeatureConfig,
+    news_feature_frame: pd.DataFrame | None = None,
+) -> pd.DataFrame:
     frame = raw_frame.copy()
     frame = frame.sort_values("timestamp").reset_index(drop=True)
 
@@ -53,6 +74,16 @@ def build_feature_frame(raw_frame: pd.DataFrame, cfg: FeatureConfig) -> pd.DataF
     frame["basis_ema_fast"] = frame["basis"].ewm(span=cfg.ema_fast_window, adjust=False).mean()
     frame["basis_ema_slow"] = frame["basis"].ewm(span=cfg.ema_slow_window, adjust=False).mean()
     frame["basis_ema_gap"] = frame["basis_ema_fast"] - frame["basis_ema_slow"]
+
+    if news_feature_frame is not None and not news_feature_frame.empty:
+        news_frame = news_feature_frame.copy()
+        news_frame["timestamp"] = pd.to_datetime(news_frame["timestamp"], utc=True)
+        frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
+        frame = frame.merge(news_frame, on="timestamp", how="left")
+    for column in NEWS_FEATURE_COLUMNS:
+        if column not in frame.columns:
+            frame[column] = 0.0
+        frame[column] = frame[column].fillna(0.0)
 
     frame = frame.replace([np.inf, -np.inf], np.nan).dropna().reset_index(drop=True)
     return frame
