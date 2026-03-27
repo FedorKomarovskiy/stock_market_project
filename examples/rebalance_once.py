@@ -11,9 +11,9 @@ def main() -> int:
         sys.path.insert(0, src_path)
 
     from kucoin_near_basis_rl.live import run_live
-    from kucoin_near_basis_rl.runtime_env import load_env_file
+    from kucoin_near_basis_rl.runtime_env import load_repo_env
 
-    load_env_file(repo_root / ".runtime" / "kucoin.env", overwrite=False)
+    load_repo_env(repo_root, ".runtime/project.env", overwrite=False)
     run_live(
         config_path=str(repo_root / "config" / "micro_near_v1_1m.json"),
         model_path=str(repo_root / "models" / "near_basis_qlearning.json"),

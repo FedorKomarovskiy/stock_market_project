@@ -48,8 +48,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--once", action="store_true", help="Run one cycle and exit.")
     parser.add_argument(
         "--env-file",
-        default=".runtime/kucoin.env",
-        help="Path to local env file with KuCoin credentials.",
+        default=".runtime/project.env",
+        help="Runtime credentials file. Defaults to .runtime/project.env with .runtime/kucoin.env fallback.",
     )
     parser.add_argument(
         "--features-out",

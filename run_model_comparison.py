@@ -31,6 +31,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--config", default="config/project_near_hourly.json", help="Path to JSON config.")
     parser.add_argument(
+        "--env-file",
+        default=".runtime/project.env",
+        help="Runtime credentials file. Defaults to .runtime/project.env with .runtime/kucoin.env fallback.",
+    )
+    parser.add_argument(
         "--source-csv",
         default="data/project_near_hourly_raw.csv",
         help="Local merged OHLCV CSV. If missing, data will be downloaded.",
@@ -53,6 +58,9 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parent
     _ensure_pythonpath(repo_root)
 
+    from kucoin_near_basis_rl.runtime_env import load_repo_env
+
+    load_repo_env(repo_root, args.env_file, overwrite=False)
     from kucoin_near_basis_rl.backtest import backtest_positions, rollout_rl_positions
     from kucoin_near_basis_rl.catboost_classifier_model import train_catboost_classifier
     from kucoin_near_basis_rl.catboost_model import train_catboost_models

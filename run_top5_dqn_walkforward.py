@@ -29,6 +29,11 @@ def parse_args() -> argparse.Namespace:
         description="Walk-forward comparison of top GB and enhanced DQN meta-controller strategies."
     )
     parser.add_argument("--config", default="config/project_near_hourly.json")
+    parser.add_argument(
+        "--env-file",
+        default=".runtime/project.env",
+        help="Runtime credentials file. Defaults to .runtime/project.env with .runtime/kucoin.env fallback.",
+    )
     parser.add_argument("--source-csv", default="", help="Optional local CSV. Ignored if --start and --end are set.")
     parser.add_argument("--report-dir", default="reports/top5_dqn_walkforward")
     parser.add_argument("--episodes", type=int, default=45, help="Enhanced DQN episodes.")
@@ -71,6 +76,9 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parent
     _ensure_pythonpath(repo_root)
 
+    from kucoin_near_basis_rl.runtime_env import load_repo_env
+
+    load_repo_env(repo_root, args.env_file, overwrite=False)
     from kucoin_near_basis_rl.backtest import (
         apply_kelly_overlay,
         backtest_positions,

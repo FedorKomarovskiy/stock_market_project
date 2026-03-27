@@ -28,6 +28,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--config", default="config/project_near_hourly.json", help="Path to JSON config.")
     parser.add_argument(
+        "--env-file",
+        default=".runtime/project.env",
+        help="Runtime credentials file. Defaults to .runtime/project.env with .runtime/kucoin.env fallback.",
+    )
+    parser.add_argument(
         "--model-out",
         default="models/project_near_hourly_gb.pkl",
         help="Path to save gradient boosting model artifact.",
@@ -59,8 +64,10 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parent
     _ensure_pythonpath(repo_root)
 
+    from kucoin_near_basis_rl.runtime_env import load_repo_env
     from kucoin_near_basis_rl.gb_model import run_gradient_boosting_pipeline
 
+    load_repo_env(repo_root, args.env_file, overwrite=False)
     summary = run_gradient_boosting_pipeline(
         config_path=str((repo_root / args.config).resolve()),
         model_out=str((repo_root / args.model_out).resolve()),

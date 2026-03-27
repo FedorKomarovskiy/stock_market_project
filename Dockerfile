@@ -20,4 +20,4 @@ COPY . /app
 
 RUN mkdir -p /app/.runtime /app/models /app/reports /app/logs
 
-CMD ["python", "run_trade_signal.py", "--mode", "shadow", "--once", "--config", "config/micro_near_v1_1m.json", "--model-path", "models/near_basis_qlearning.json", "--env-file", ".runtime/kucoin.env"]
+CMD ["python", "run_trade_signal.py", "--mode", "shadow", "--once", "--config", "config/micro_near_v1_1m.json", "--model-path", "models/near_basis_qlearning.json", "--env-file", ".runtime/project.env"]

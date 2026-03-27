@@ -10,7 +10,7 @@ fi
 RUNNER_SCRIPT="${PROJECT_DIR}/run_trade_signal.py"
 CONFIG_PATH="${PROJECT_DIR}/config/micro_near_v1_1m.json"
 MODEL_PATH="${PROJECT_DIR}/models/near_basis_qlearning.json"
-ENV_FILE="${PROJECT_DIR}/.runtime/kucoin.env"
+ENV_FILE="${PROJECT_DIR}/.runtime/project.env"
 MODE="shadow"
 RUN_REAL_ORDER=0
 ONCE=0

@@ -3,7 +3,7 @@ param(
     [string]$Action = "shadow-once",
     [string]$Config = "config/micro_near_v1_1m.json",
     [string]$ModelPath = "models/near_basis_qlearning.json",
-    [string]$EnvFile = ".runtime/kucoin.env",
+    [string]$EnvFile = ".runtime/project.env",
     [int]$Episodes = 80,
     [string]$Start = "",
     [string]$End = ""
@@ -91,7 +91,7 @@ switch ($Action) {
         Write-Host "Install complete."
     }
     "env-template" {
-        $Example = Join-Path $ProjectDir "examples\kucoin.env.example"
+        $Example = Join-Path $ProjectDir "examples\project.env.example"
         $Target = Join-Path $ProjectDir $EnvFile
         $TargetDir = Split-Path -Parent $Target
         New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null

@@ -46,7 +46,7 @@ if ([string]::IsNullOrWhiteSpace($ModelPath)) {
     $ModelPath = Join-Path $ProjectDir "models\near_basis_qlearning.json"
 }
 if ([string]::IsNullOrWhiteSpace($EnvFile)) {
-    $EnvFile = Join-Path $ProjectDir ".runtime\kucoin.env"
+    $EnvFile = Join-Path $ProjectDir ".runtime\project.env"
 }
 
 $runnerScript = Join-Path $ProjectDir "run_trade_signal.py"

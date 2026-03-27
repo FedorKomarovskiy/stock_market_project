@@ -208,12 +208,17 @@ Create local env file:
 .\scripts\bot.ps1 -Action env-template
 ```
 
-Fill `.runtime/kucoin.env`:
+Fill `.runtime/project.env`:
 
 ```env
 KUCOIN_API_KEY=...
 KUCOIN_API_SECRET=...
 KUCOIN_API_PASSPHRASE=...
+FINNHUB_API_KEY=...
+CRYPTOPANIC_API_KEY=...
+X_BEARER_TOKEN=...
+X_CONSUMER_KEY=...
+X_CONSUMER_SECRET=...
 ```
 
 Shadow once:
@@ -242,7 +247,7 @@ python -m pytest tests -q
 ```
 
 Current status in local verification:
-- `14 passed`
+- `16 passed`
 
 ## 10. GitHub checklist
 
@@ -250,7 +255,7 @@ Before submission:
 1. create a private repository
 2. push this project
 3. add collaborators: instructor, assistants, and your teammate
-4. keep `.runtime/kucoin.env` private
+4. keep `.runtime/project.env` private
 
 Minimal git commands:
 

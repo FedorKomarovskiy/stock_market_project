@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
@@ -198,3 +199,30 @@ def test_enhanced_meta_dqn_rollout_stays_in_valid_position_sizes() -> None:
     positions = rollout_enhanced_meta_dqn_positions(test_prepared.head(50), artifacts)
 
     assert set(positions["target_position"].tolist()).issubset({-1.0, -0.5, 0.0, 0.5, 1.0})
+
+
+def test_load_repo_env_uses_project_file_with_kucoin_fallback(tmp_path, monkeypatch) -> None:
+    from kucoin_near_basis_rl.runtime_env import load_repo_env
+
+    runtime_dir = tmp_path / ".runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    (runtime_dir / "project.env").write_text(
+        "KUCOIN_API_KEY=project-key\nFINNHUB_API_KEY=finnhub-key\n",
+        encoding="utf-8",
+    )
+    (runtime_dir / "kucoin.env").write_text(
+        "KUCOIN_API_KEY=legacy-key\nKUCOIN_API_SECRET=legacy-secret\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.delenv("KUCOIN_API_KEY", raising=False)
+    monkeypatch.delenv("KUCOIN_API_SECRET", raising=False)
+    monkeypatch.delenv("FINNHUB_API_KEY", raising=False)
+
+    loaded = load_repo_env(tmp_path, ".runtime/project.env", overwrite=False)
+
+    assert loaded["KUCOIN_API_KEY"] == "project-key"
+    assert loaded["FINNHUB_API_KEY"] == "finnhub-key"
+    assert loaded["KUCOIN_API_SECRET"] == "legacy-secret"
+    assert os.environ["KUCOIN_API_KEY"] == "project-key"
+    assert os.environ["KUCOIN_API_SECRET"] == "legacy-secret"
