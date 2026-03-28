@@ -21,3 +21,32 @@ def load_env_file(path: str | Path, overwrite: bool = False) -> dict[str, str]:
         os.environ[key] = value
         loaded[key] = value
     return loaded
+
+
+def resolve_env_path(repo_root: str | Path, env_file: str | Path | None = None) -> Path:
+    root = Path(repo_root)
+    if env_file is None or str(env_file).strip() == "":
+        return (root / ".runtime" / "project.env").resolve()
+    candidate = Path(env_file)
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (root / candidate).resolve()
+
+
+def load_repo_env(
+    repo_root: str | Path,
+    env_file: str | Path | None = None,
+    overwrite: bool = False,
+) -> dict[str, str]:
+    root = Path(repo_root).resolve()
+    primary = resolve_env_path(root, env_file)
+    fallback = (root / ".runtime" / "kucoin.env").resolve()
+
+    loaded: dict[str, str] = {}
+    seen: set[Path] = set()
+    for candidate in (primary, fallback):
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        loaded.update(load_env_file(candidate, overwrite=overwrite))
+    return loaded

@@ -9,6 +9,8 @@ logs/
 reports/
 models/
 .docker-local/
+.idea/
+catboost_info/
 !reports/
 reports/*
 !reports/project_near_hourly/

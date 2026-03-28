@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
 
-from kucoin_near_basis_rl.backtest import backtest_positions, build_baseline_positions, rollout_rl_positions
+from kucoin_near_basis_rl.backtest import (
+    apply_kelly_overlay,
+    backtest_positions,
+    build_baseline_positions,
+    estimate_kelly_fraction,
+    rollout_rl_positions,
+)
 from kucoin_near_basis_rl.config import AppConfig, FeatureConfig
 from kucoin_near_basis_rl.features import FEATURE_COLUMNS, build_feature_frame
 from kucoin_near_basis_rl.qlearning import QLearningAgent, StateDiscretizer, build_quantile_bins
@@ -99,3 +106,123 @@ def test_research_backtest_pipeline_on_synthetic_data() -> None:
         assert key in rl_result.metrics
         assert np.isfinite(float(baseline_result.metrics[key]))
         assert np.isfinite(float(rl_result.metrics[key]))
+
+
+def test_meta_controller_rollout_stays_in_valid_positions() -> None:
+    from kucoin_near_basis_rl.config import AppConfig
+    from kucoin_near_basis_rl.feature_pipeline import RL_META_OBSERVATION_COLUMNS, prepare_frames
+    from kucoin_near_basis_rl.meta_controller_agent import (
+        rollout_binary_meta_dqn_positions,
+        rollout_meta_dqn_positions,
+        train_binary_meta_dqn_agent,
+        train_meta_dqn_agent,
+    )
+
+    cfg = AppConfig()
+    cfg.research.min_train_rows = 200
+    cfg.research.min_test_rows = 100
+    prepared = prepare_frames(_synthetic_raw(rows=800), cfg)
+    artifacts = train_meta_dqn_agent(
+        train_frame=prepared.train_frame,
+        observation_columns=RL_META_OBSERVATION_COLUMNS,
+        episodes=2,
+        min_replay_size=64,
+        max_steps_per_episode=128,
+    )
+    positions = rollout_meta_dqn_positions(prepared.test_frame.head(50), artifacts)
+
+    assert set(positions["target_position"].tolist()).issubset({-1, 0, 1})
+
+    binary_artifacts = train_binary_meta_dqn_agent(
+        train_frame=prepared.train_frame,
+        observation_columns=RL_META_OBSERVATION_COLUMNS,
+        episodes=2,
+        min_replay_size=64,
+        max_steps_per_episode=128,
+    )
+    binary_positions = rollout_binary_meta_dqn_positions(prepared.test_frame.head(50), binary_artifacts)
+
+    assert set(binary_positions["target_position"].tolist()).issubset({-1, 0, 1})
+
+
+def test_kelly_overlay_supports_fractional_positions() -> None:
+    frame = build_feature_frame(_synthetic_raw(rows=500), FeatureConfig())
+    positions = [1.0 if i % 10 < 5 else 0.0 for i in range(len(frame))]
+    kelly_fraction = estimate_kelly_fraction(
+        feature_frame=frame,
+        positions=positions,
+        fee_rate_per_rebalance=0.0001,
+        risk_penalty=0.00001,
+        max_fraction=2.0,
+        fraction_multiplier=0.5,
+        min_active_rows=10,
+    )
+    scaled_positions = apply_kelly_overlay(positions, kelly_fraction)
+    result = backtest_positions(
+        feature_frame=frame,
+        positions=scaled_positions,
+        fee_rate_per_rebalance=0.0001,
+        risk_penalty=0.00001,
+        initial_capital=10_000.0,
+        strategy_name="kelly_overlay_test",
+    )
+
+    assert 0.0 <= kelly_fraction <= 2.0
+    assert len(result.history) == len(frame) - 1
+
+
+def test_enhanced_meta_dqn_rollout_stays_in_valid_position_sizes() -> None:
+    from kucoin_near_basis_rl.config import AppConfig
+    from kucoin_near_basis_rl.enhanced_meta_dqn import (
+        rollout_enhanced_meta_dqn_positions,
+        train_enhanced_meta_dqn_agent,
+    )
+    from kucoin_near_basis_rl.feature_pipeline import RL_META_OBSERVATION_COLUMNS, add_gb_auxiliary_features, build_enriched_feature_frame
+
+    cfg = AppConfig()
+    cfg.research.min_train_rows = 200
+    cfg.research.min_test_rows = 100
+    feature_frame = build_enriched_feature_frame(_synthetic_raw(rows=900), cfg)
+    split_index = 650
+    train_frame = feature_frame.iloc[:split_index].reset_index(drop=True)
+    test_frame = feature_frame.iloc[split_index:].reset_index(drop=True)
+    train_prepared, test_prepared, _cols, _thr = add_gb_auxiliary_features(train_frame, test_frame, cfg)
+
+    artifacts = train_enhanced_meta_dqn_agent(
+        train_frame=train_prepared,
+        observation_columns=RL_META_OBSERVATION_COLUMNS,
+        episodes=2,
+        min_replay_size=64,
+        max_steps_per_episode=128,
+        reward_horizon=3,
+    )
+    positions = rollout_enhanced_meta_dqn_positions(test_prepared.head(50), artifacts)
+
+    assert set(positions["target_position"].tolist()).issubset({-1.0, -0.5, 0.0, 0.5, 1.0})
+
+
+def test_load_repo_env_uses_project_file_with_kucoin_fallback(tmp_path, monkeypatch) -> None:
+    from kucoin_near_basis_rl.runtime_env import load_repo_env
+
+    runtime_dir = tmp_path / ".runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    (runtime_dir / "project.env").write_text(
+        "KUCOIN_API_KEY=project-key\nFINNHUB_API_KEY=finnhub-key\n",
+        encoding="utf-8",
+    )
+    (runtime_dir / "kucoin.env").write_text(
+        "KUCOIN_API_KEY=legacy-key\nKUCOIN_API_SECRET=legacy-secret\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.delenv("KUCOIN_API_KEY", raising=False)
+    monkeypatch.delenv("KUCOIN_API_SECRET", raising=False)
+    monkeypatch.delenv("FINNHUB_API_KEY", raising=False)
+
+    loaded = load_repo_env(tmp_path, ".runtime/project.env", overwrite=False)
+
+    assert loaded["KUCOIN_API_KEY"] == "project-key"
+    assert loaded["FINNHUB_API_KEY"] == "finnhub-key"
+    assert loaded["KUCOIN_API_SECRET"] == "legacy-secret"
+    assert os.environ["KUCOIN_API_KEY"] == "project-key"
+    assert os.environ["KUCOIN_API_SECRET"] == "legacy-secret"

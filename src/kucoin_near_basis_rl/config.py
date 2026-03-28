@@ -38,6 +38,27 @@ class FeatureConfig:
 
 
 @dataclass
+class NewsConfig:
+    enabled: bool = True
+    use_finnhub: bool = True
+    use_cryptopanic: bool = True
+    use_x: bool = True
+    api_key_env: str = "FINNHUB_API_KEY"
+    cryptopanic_api_key_env: str = "CRYPTOPANIC_API_KEY"
+    x_bearer_env: str = "X_BEARER_TOKEN"
+    x_consumer_key_env: str = "X_CONSUMER_KEY"
+    x_consumer_secret_env: str = "X_CONSUMER_SECRET"
+    category: str = "crypto"
+    x_query: str = '(NEAR OR "Near Protocol") lang:en -is:retweet'
+    x_max_results: int = 25
+    short_window_hours: int = 6
+    long_window_hours: int = 24
+    cache_path: str = ".runtime/finnhub_crypto_news.csv"
+    request_timeout_sec: int = 20
+    cache_retention_days: int = 30
+
+
+@dataclass
 class BaselineConfig:
     enter_zscore: float = 1.8
     exit_zscore: float = 0.35
@@ -87,6 +108,7 @@ class AppConfig:
     api: ApiConfig = field(default_factory=ApiConfig)
     data: DataConfig = field(default_factory=DataConfig)
     features: FeatureConfig = field(default_factory=FeatureConfig)
+    news: NewsConfig = field(default_factory=NewsConfig)
     baseline: BaselineConfig = field(default_factory=BaselineConfig)
     rl: RlConfig = field(default_factory=RlConfig)
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
@@ -98,6 +120,7 @@ class AppConfig:
             api=ApiConfig(**payload.get("api", {})),
             data=DataConfig(**payload.get("data", {})),
             features=FeatureConfig(**payload.get("features", {})),
+            news=NewsConfig(**payload.get("news", {})),
             baseline=BaselineConfig(**payload.get("baseline", {})),
             rl=RlConfig(**payload.get("rl", {})),
             execution=ExecutionConfig(**payload.get("execution", {})),

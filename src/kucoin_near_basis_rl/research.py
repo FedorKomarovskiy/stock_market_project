@@ -14,6 +14,7 @@ import pandas as pd
 from .backtest import BacktestResult, backtest_positions, build_baseline_positions, rollout_rl_positions
 from .config import AppConfig, load_config
 from .features import build_feature_frame
+from .finnhub_news import build_news_feature_frame
 from .kucoin_api import KuCoinPublicDataClient
 from .qlearning import save_model_artifact
 from .train import train_agent_from_features
@@ -162,7 +163,8 @@ def run_research_experiment(
         raw_path.parent.mkdir(parents=True, exist_ok=True)
         raw_frame.to_csv(raw_path, index=False)
 
-    feature_frame = build_feature_frame(raw_frame, cfg.features)
+    news_feature_frame = build_news_feature_frame(raw_frame, cfg.news)
+    feature_frame = build_feature_frame(raw_frame, cfg.features, news_feature_frame=news_feature_frame)
     train_frame, test_frame = _time_split(feature_frame, cfg)
     split_feature_frame = feature_frame.copy()
     split_feature_frame["split"] = ["train"] * len(train_frame) + ["test"] * len(test_frame)

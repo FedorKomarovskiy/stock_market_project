@@ -1,153 +1,63 @@
-# KuCoin Delta-Neutral RL Project
+# KuCoin NEAR Basis RL Project
 
-Reproducible course project for crypto trading on KuCoin with:
-- chosen pair: `NEAR-USDT` spot + `NEARUSDTM` perpetual futures
-- baseline: z-score mean reversion on basis
-- RL agent: tabular Q-learning
-- outputs: historical data, engineered features, backtests, metrics, equity curve, notebook, live/shadow scripts
+Research and execution repository for basis trading on KuCoin:
+- spot: `NEAR-USDT`
+- perpetual: `NEARUSDTM`
+- market variable: normalized basis `(F - S) / S`
 
-The repository is split into two layers:
-- `research` layer for the course project and backtesting
-- `live/shadow` layer for KuCoin deployment through PowerShell / bash
+The repository started as a course project with a baseline z-score strategy and tabular Q-learning. It now includes:
+- a unified market + news feature pipeline
+- baseline, gradient boosting, CatBoost and ensemble research pipelines
+- several RL variants, including DQN, PPO, meta-controllers and an enhanced `Double DQN + Dueling + Prioritized Replay` controller
+- walk-forward evaluation for more objective comparison
+- shadow/live execution scripts for KuCoin
 
-## 1. What is inside
+## 1. Current architecture
 
-Project requirements covered:
-- download of historical OHLCV data for more than 2 years
-- feature engineering: returns, volatility, volume imbalance, rolling correlation, RSI, EMA-gap
-- baseline model: z-score basis strategy
-- RL formalization: `state = [basis_zscore, current_position]`, `action in {-1, 0, +1}`
-- train/test time split without leakage
-- backtest with `Sharpe`, `Max Drawdown`, `CAGR`
-- equity-curve and market/position charts
-- notebook and slide deck for presentation
-- PowerShell / bash commands for live and shadow runs
+The project is split into five layers.
 
-## 2. Repository structure
+### Data layer
+- KuCoin market data: `src/kucoin_near_basis_rl/kucoin_api.py`
+- News aggregation and caching: `src/kucoin_near_basis_rl/finnhub_news.py`
+- Supported news sources: `Finnhub + CryptoPanic + X`
 
-- `run_research_pipeline.py` - end-to-end research pipeline for the course project
-- `run_trade_signal.py` - launcher for `train / shadow / live`
-- `trade_signal_executor_kucoin.py` - execution entrypoint
-- `config/project_near_hourly.json` - research config used for the final backtest
-- `config/micro_near_v1_1m.json` - live/shadow minute profile
-- `src/kucoin_near_basis_rl/features.py` - data preparation and engineered features
-- `src/kucoin_near_basis_rl/train.py` - RL training
-- `src/kucoin_near_basis_rl/backtest.py` - out-of-sample backtesting and metrics
-- `src/kucoin_near_basis_rl/live.py` - paper/live decision loop
-- `notebooks/project_near_basis_rl.ipynb` - reproducible notebook
-- `presentation/project_slides.html` - slide deck source
-- `presentation/project_slides.pdf` - exported PDF slides
+### Feature and signal layer
+- Core market features: `src/kucoin_near_basis_rl/features.py`
+- Enriched feature pipeline: `src/kucoin_near_basis_rl/feature_pipeline.py`
+- Baseline signal: `src/kucoin_near_basis_rl/baseline.py`
+- GB auxiliary signal: `src/kucoin_near_basis_rl/gb_model.py`
 
-## 3. Install
+### Model layer
+- Original tabular RL: `src/kucoin_near_basis_rl/qlearning.py`
+- DQN: `src/kucoin_near_basis_rl/dqn_agent.py`
+- PPO: `src/kucoin_near_basis_rl/ppo_agent.py`
+- Binary / ternary meta-controllers: `src/kucoin_near_basis_rl/meta_controller_agent.py`
+- Enhanced DQN meta-controller: `src/kucoin_near_basis_rl/enhanced_meta_dqn.py`
+- CatBoost models: `src/kucoin_near_basis_rl/catboost_model.py`, `src/kucoin_near_basis_rl/catboost_classifier_model.py`
+- Ensemble research model: `src/kucoin_near_basis_rl/ensemble_model.py`
 
-Core CLI environment:
+### Evaluation layer
+- Research experiment and plots: `src/kucoin_near_basis_rl/research.py`
+- Backtest engine and metrics: `src/kucoin_near_basis_rl/backtest.py`
+- Model comparison runners:
+  - `run_model_comparison.py`
+  - `run_rl_strategy_comparison.py`
+  - `run_top5_dqn_walkforward.py`
 
-```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip wheel "setuptools<81"
-python -m pip install -r requirements-core.txt
-```
+### Execution layer
+- Cross-platform launcher: `run_trade_signal.py`
+- Train / shadow / live executor: `trade_signal_executor_kucoin.py`
+- Live decision loop: `src/kucoin_near_basis_rl/live.py`
 
-macOS/Linux:
+## 2. Features
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-python -m pip install --upgrade pip wheel "setuptools<81"
-python -m pip install -r requirements-core.txt
-```
-
-Optional notebook environment:
-
-```powershell
-python -m pip install jupyter ipykernel
-```
-
-Note:
-- `requirements-core.txt` is enough for training, backtesting, tests and live/shadow scripts.
-- `requirements.txt` additionally contains Jupyter-related packages. On some Windows setups full Jupyter installation may require long-path support.
-
-## 4. Reproduce the course experiment
-
-PowerShell:
-
-```powershell
-.\scripts\bot.ps1 -Action research
-```
-
-Equivalent direct command:
-
-```powershell
-python run_research_pipeline.py `
-  --config config/project_near_hourly.json `
-  --model-out models/project_near_hourly_qlearning.json `
-  --report-dir reports/project_near_hourly `
-  --raw-out data/project_near_hourly_raw.csv `
-  --features-out reports/project_near_hourly/features.csv `
-  --start "2024-01-01T00:00:00Z" `
-  --end "2026-03-01T00:00:00Z"
-```
-
-bash:
-
-```bash
-./scripts/bot.sh research
-```
-
-The pipeline performs:
-1. downloads and merges KuCoin spot/futures history
-2. builds features
-3. splits data into `70% train / 30% test`
-4. trains the Q-learning agent
-5. backtests baseline and RL on the test split
-6. saves metrics and plots
-
-Main outputs:
-- `data/project_near_hourly_raw.csv`
-- `models/project_near_hourly_qlearning.json`
-- `reports/project_near_hourly/metrics.csv`
-- `reports/project_near_hourly/equity_curve.png`
-- `reports/project_near_hourly/market_and_positions.png`
-- `reports/project_near_hourly/summary.json`
-
-## 5. Final backtest snapshot
-
-Latest reproducible run in this repository:
-- download window: `2024-01-01 00:00:00 UTC` to `2026-03-01 00:00:00 UTC`
-- feature frame after rolling windows: `2024-08-08 01:00:00 UTC` to `2026-02-28 23:00:00 UTC`
-- train split: `2024-08-08 01:00:00 UTC` to `2025-09-10 22:00:00 UTC`
-- test split: `2025-09-10 23:00:00 UTC` to `2026-02-28 23:00:00 UTC`
-- raw rows: `13,739`
-- feature rows: `13,666`
-
-Backtest assumptions:
-- hourly bars
-- combined rebalance fee assumption in research config: `0.0004`
-- additional risk penalty in reward/backtest: `0.00005 * |position| * |zscore|`
-- initial capital: `10,000 USDT`
-
-Results on the test split:
-
-| Strategy | Total Return | CAGR | Sharpe | Max Drawdown |
-| --- | ---: | ---: | ---: | ---: |
-| Baseline z-score | 3.77% | 8.23% | 4.10 | -0.36% |
-| RL agent | 2.77% | 6.00% | 4.06 | -0.13% |
-
-Interpretation:
-- the baseline is slightly more profitable on this split
-- the RL agent is also profitable, trades less, and shows lower drawdown
-- this makes the baseline a strong reference model and the RL policy a smoother alternative
-
-## 6. State, action and reward
-
-State used by the RL agent:
-- `basis_zscore`
-- `current_position`
-
-Additional engineered columns kept for analysis and notebook:
+### Original market features
+The original project already used basis and market microstructure features:
+- `basis`
 - `spot_return`
 - `futures_return`
+- `basis_return`
+- `basis_zscore`
 - `spot_volatility`
 - `futures_volatility`
 - `basis_volatility`
@@ -156,95 +66,351 @@ Additional engineered columns kept for analysis and notebook:
 - `rolling_correlation`
 - `spot_rsi`
 - `futures_rsi`
+- `basis_ema_fast`
+- `basis_ema_slow`
 - `basis_ema_gap`
 
-Actions:
-- `0 -> short basis`
-- `1 -> flat`
-- `2 -> long basis`
+### Added news features
+The current repository adds multi-source news features over `6h` and `24h` windows:
+- `news_count_*`
+- `news_sentiment_mean_*`
+- `news_weighted_sentiment_mean_*`
+- `news_sentiment_sum_*`
+- `news_sentiment_abs_sum_*`
+- `news_relevance_mean_*`
+- `news_near_count_*`
+- `news_positive_count_*`
+- `news_negative_count_*`
+- `news_cryptopanic_count_*`
+- `news_finnhub_count_*`
+- `news_x_count_*`
+- `news_source_diversity_*`
+- `news_burst_ratio_6h_24h`
 
-Reward per step:
-- `position * delta(basis)`
-- minus rebalance fee
-- minus risk penalty for holding exposure under extreme z-score
+### Added baseline-derived features
+- `baseline_position`
+- `baseline_enter_long_flag`
+- `baseline_enter_short_flag`
+- `baseline_flat_flag`
+- `distance_to_baseline_entry`
+- `distance_to_baseline_exit`
 
-## 7. Notebook and presentation
+### Added GB-derived features
+- `gb_pred_basis_change`
+- `gb_pred_abs_basis_change`
+- `gb_pred_direction`
+- `gb_high_confidence_flag`
+- `gb_confidence_score`
 
-Open the notebook:
+### Added meta-signal features for RL
+- `rl_regime_active_flag`
+- `meta_signal_direction`
+- `meta_signal_strength`
+- `meta_signal_alignment_flag`
 
-```powershell
-python -m jupyter lab notebooks/project_near_basis_rl.ipynb
+### Added stateful RL features
+The enhanced DQN also uses portfolio-state features:
+- `current_position`
+- `position_abs`
+- `bars_in_trade_scaled`
+- `entry_basis_zscore_scaled`
+- `unrealized_pnl_scaled`
+- `time_since_last_trade_scaled`
+- `recent_turnover_rate`
+
+## 3. Baseline model
+
+`baseline` is the original strategy of the project, not a separate later addition.
+
+It is a simple z-score mean-reversion policy:
+- if `basis_zscore >= enter_zscore` -> `short basis`
+- if `basis_zscore <= -enter_zscore` -> `long basis`
+- if `abs(basis_zscore) <= exit_zscore` -> `flat`
+- otherwise keep the previous position
+
+In the current repository the baseline plays three roles:
+- benchmark strategy
+- source of engineered features
+- one of the two components of the `meta-signal` together with GB
+
+## 4. What the RL layer does now
+
+There are several RL variants in the repository. The current RL direction is not “predict the market from scratch”, but `RL as final decision-maker over structured signals`.
+
+The strongest RL version at the moment is:
+- `dqn_enhanced_meta_controller`
+
+It receives:
+- compact market features
+- news features
+- baseline features
+- GB predictions and confidence
+- meta-signal features
+- stateful position / PnL context
+
+Its action space is:
+- `0 = skip`
+- `1 = half-size`
+- `2 = full-size`
+
+The actual trade direction comes from the sign of `meta_signal_direction`, while RL decides whether the signal should be ignored, taken conservatively, or taken fully.
+
+## 5. Install
+
+### Core environment
+macOS / Linux:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip wheel "setuptools<81"
+python -m pip install -r requirements-core.txt
 ```
 
-Slides already included:
-- `presentation/project_slides.html`
-- `presentation/project_slides.pdf`
-
-To regenerate the PDF on Windows with Microsoft Edge:
+Windows PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\presentation\export_presentation.ps1
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip wheel "setuptools<81"
+python -m pip install -r requirements-core.txt
 ```
 
-## 8. KuCoin live and shadow mode
+### Optional notebook environment
 
-Create local env file:
+```bash
+python -m pip install jupyter ipykernel
+```
+
+## 6. Unified credentials file
+
+The repository now uses a single local runtime credentials file:
+
+```text
+.runtime/project.env
+```
+
+Create it from the template:
+
+```bash
+cp examples/project.env.example .runtime/project.env
+```
+
+or on Windows:
 
 ```powershell
 .\scripts\bot.ps1 -Action env-template
 ```
 
-Fill `.runtime/kucoin.env`:
+Example:
 
 ```env
 KUCOIN_API_KEY=...
 KUCOIN_API_SECRET=...
 KUCOIN_API_PASSPHRASE=...
+KUCOIN_KEY_VERSION=2
+
+FINNHUB_API_KEY=...
+CRYPTOPANIC_API_KEY=...
+X_BEARER_TOKEN=...
+X_CONSUMER_KEY=...
+X_CONSUMER_SECRET=...
+```
+
+Notes:
+- all main runners automatically load `.runtime/project.env`
+- `.runtime/kucoin.env` is still supported as a fallback for backward compatibility
+- keep `.runtime/project.env` private and out of git
+
+## 7. Main entrypoints
+
+### Reproduce the original research pipeline
+
+```bash
+python run_research_pipeline.py \
+  --config config/project_near_hourly.json \
+  --model-out models/project_near_hourly_qlearning.json \
+  --report-dir reports/project_near_hourly \
+  --raw-out data/project_near_hourly_raw.csv \
+  --features-out reports/project_near_hourly/features.csv \
+  --start 2024-01-01T00:00:00Z \
+  --end 2026-03-01T00:00:00Z
+```
+
+### Train gradient boosting forecast models
+
+```bash
+python run_gb_forecast.py \
+  --config config/project_near_hourly.json \
+  --report-dir reports/project_near_hourly_gb
+```
+
+### Compare forecast / ML families
+
+```bash
+python run_model_comparison.py \
+  --config config/project_near_hourly.json \
+  --source-csv data/project_near_hourly_raw.csv \
+  --report-dir reports/model_comparison
+```
+
+### Compare RL and non-RL strategies on a recent window
+
+```bash
+python run_rl_strategy_comparison.py \
+  --config config/project_near_hourly.json \
+  --start 2026-01-15T00:00:00Z \
+  --end 2026-03-27T00:00:00Z \
+  --report-dir reports/rl_first_comparison_kelly_newsfull
+```
+
+### Objective walk-forward comparison of top strategies
+
+```bash
+python run_top5_dqn_walkforward.py \
+  --config config/project_near_hourly.json \
+  --start 2026-01-15T00:00:00Z \
+  --end 2026-03-27T00:00:00Z \
+  --report-dir reports/top5_dqn_walkforward_newsfull_tuned \
+  --episodes 45 \
+  --folds 2 \
+  --reward-horizon 6
+```
+
+### Shadow / live trading
+
+Train:
+
+```bash
+python run_trade_signal.py \
+  --mode train \
+  --config config/micro_near_v1_1m.json \
+  --model-path models/near_basis_qlearning.json
 ```
 
 Shadow once:
 
-```powershell
-python run_trade_signal.py --mode train --config config/micro_near_v1_1m.json --model-path models/near_basis_qlearning.json
-python run_trade_signal.py --mode shadow --once --config config/micro_near_v1_1m.json --model-path models/near_basis_qlearning.json
+```bash
+python run_trade_signal.py \
+  --mode shadow \
+  --once \
+  --config config/micro_near_v1_1m.json \
+  --model-path models/near_basis_qlearning.json
 ```
 
 Live:
 
-```powershell
-python run_trade_signal.py --mode live --run-real-order --config config/micro_near_v1_1m.json --model-path models/near_basis_qlearning.json
+```bash
+python run_trade_signal.py \
+  --mode live \
+  --run-real-order \
+  --config config/micro_near_v1_1m.json \
+  --model-path models/near_basis_qlearning.json
 ```
 
-Important live note:
-- `config/micro_near_v1_1m.json` is the lecture-style live profile.
-- for cash spot accounts the project keeps `allow_spot_short=false`; in that case states requiring a spot short are flattened.
-- full two-sided live deployment for a spot/perpetual pair requires either margin-enabled spot shorting or a modified execution layer.
+## 8. Latest experiment summary
 
-## 9. Tests
+### A. Broad recent-window comparison with the new news layer
+Report:
+- `reports/rl_first_comparison_kelly_newsfull/comparison_metrics.csv`
+- window: `2026-01-15 -> 2026-03-27`
+- evaluation: single holdout split on the recent news-enabled window
 
-```powershell
-$env:PYTHONPATH="src"
-python -m pytest tests -q
-```
+The table below shows the non-Kelly strategies from the latest broad comparison:
 
-Current status in local verification:
-- `14 passed`
+| Strategy | Total Return | Sharpe | Max Drawdown | Comment |
+| --- | ---: | ---: | ---: | --- |
+| `gradient_boosting` | 10.09% | 7.14 | -0.31% | Best absolute result |
+| `dqn_binary_meta_controller` | 6.19% | 3.27 | -1.48% | Best RL result on this window |
+| `gb_plus_baseline_filter` | 4.17% | 5.01 | -0.14% | Strong filtered non-RL benchmark |
+| `baseline_zscore` | 3.77% | 4.10 | -0.36% | Original project strategy |
+| `ppo_binary_meta_controller` | 1.35% | 0.88 | -1.54% | Positive but clearly weaker |
+| `tabular_rl` | 0.15% | 0.81 | -0.12% | Original RL baseline |
+| `dqn_meta_controller` | -0.38% | -0.20 | -2.01% | Underperforms |
+| `ppo_meta_controller` | -0.37% | -0.26 | -2.44% | Underperforms |
+| `ppo_rl_first` | -1.18% | -0.64 | -2.88% | Worse than meta-controller |
+| `dqn_rl_first_v2` | -5.90% | -6.06 | -6.10% | Worst among recent RL variants |
 
-## 10. GitHub checklist
+Interpretation:
+- on the recent news-enabled holdout, `GB` still dominates
+- the best RL family member is the binary DQN meta-controller
+- the original tabular RL remains mainly a baseline reference
 
-Before submission:
-1. create a private repository
-2. push this project
-3. add collaborators: instructor, assistants, and your teammate
-4. keep `.runtime/kucoin.env` private
+### B. Latest stable walk-forward top-5 comparison
+Report:
+- `reports/top5_dqn_walkforward_newsfull_tuned/comparison_metrics_top5.csv`
+- `reports/top5_dqn_walkforward_newsfull_tuned/summary.json`
+- window: `2026-01-15 -> 2026-03-27`
+- evaluation: `2-fold expanding walk-forward`
 
-Minimal git commands:
+This is the more objective comparison because the models are retrained on each fold and tested on unseen future slices.
+
+| Strategy | Total Return | Sharpe | Max Drawdown | Turnover |
+| --- | ---: | ---: | ---: | ---: |
+| `gradient_boosting` | 1.40% | 8.04 | -0.15% | 75 |
+| `gb_plus_baseline_filter` | 0.59% | 6.48 | -0.04% | 10 |
+| `gb_plus_baseline_filter_kelly` | 0.59% | 6.48 | -0.04% | 10 |
+| `gradient_boosting_kelly` | 0.35% | 8.04 | -0.04% | 75 |
+| `dqn_enhanced_meta_controller` | 0.19% | 3.58 | -0.04% | 6 |
+
+Interpretation:
+- `GB` is still the strongest model under walk-forward evaluation
+- `enhanced DQN meta-controller` is the strongest stable RL candidate
+- the enhanced DQN is profitable and materially better than the original RL baselines, but still weaker than `GB`
+- Kelly overlay did not improve the walk-forward result materially
+
+## 9. Reproducibility notes
+
+What makes the current repository reproducible:
+- single runtime credentials file: `.runtime/project.env`
+- deterministic runners for research and comparisons
+- tests for the pipeline and env loading
+- saved reports and summaries in `reports/`
+- walk-forward evaluation available in addition to ordinary backtest
+
+Important distinction:
+- `backtest` / holdout results are historical estimates
+- `walk-forward` is a stricter historical evaluation
+- `shadow` runs the strategy on new market data without real orders
+- only `live` gives the real deposit result
+
+## 10. Tests
 
 ```bash
-git init
-git add .
-git commit -m "Add reproducible KuCoin RL project"
-git branch -M main
-git remote add origin https://github.com/<your_user>/<your_private_repo>.git
-git push -u origin main
+PYTHONPATH=src python -m pytest tests/test_project_pipeline.py tests/test_kucoin_near_basis_rl.py
 ```
+
+Current local status:
+- `16 passed`
+
+## 11. Useful helpers
+
+PowerShell helper:
+
+```powershell
+.\scripts\bot.ps1 -Action research
+.\scripts\bot.ps1 -Action shadow-once
+.\scripts\bot.ps1 -Action live
+```
+
+bash helper:
+
+```bash
+./scripts/bot.sh research
+./scripts/bot.sh shadow-once
+./scripts/bot.sh live
+```
+
+## 12. Repository hygiene
+
+Before pushing:
+- do not commit `.runtime/project.env`
+- do not commit local IDE files
+- do not commit transient training artifacts
+
+The repository already ignores:
+- `.runtime/`
+- `.idea/`
+- `reports/`
+- `models/`
+- `catboost_info/`

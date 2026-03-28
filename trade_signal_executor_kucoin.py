@@ -52,8 +52,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--once", action="store_true", help="Run one decision cycle and exit.")
     parser.add_argument(
         "--env-file",
-        default=".runtime/kucoin.env",
-        help="Env file with KUCOIN_API_KEY / KUCOIN_API_SECRET / KUCOIN_API_PASSPHRASE.",
+        default=".runtime/project.env",
+        help="Runtime credentials file. Defaults to .runtime/project.env with .runtime/kucoin.env fallback.",
     )
     parser.add_argument(
         "--features-out",
@@ -78,10 +78,10 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_runtime_env(env_file: Path) -> dict[str, str]:
-    from kucoin_near_basis_rl.runtime_env import load_env_file
+def _load_runtime_env(repo_root: Path, env_file: Path) -> dict[str, str]:
+    from kucoin_near_basis_rl.runtime_env import load_repo_env
 
-    return load_env_file(env_file, overwrite=False)
+    return load_repo_env(repo_root, env_file, overwrite=False)
 
 
 def _train_model_if_needed(args: argparse.Namespace, repo_root: Path) -> None:
@@ -130,7 +130,7 @@ def main() -> int:
     _ensure_pythonpath(repo_root)
 
     env_file = (repo_root / args.env_file).resolve()
-    loaded = _load_runtime_env(env_file)
+    loaded = _load_runtime_env(repo_root, env_file)
     if args.show_command_context:
         print("Repo root:", repo_root)
         print("Config:", (repo_root / args.config).resolve())

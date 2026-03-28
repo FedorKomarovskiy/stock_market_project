@@ -11,7 +11,7 @@ VENV_PYTHON="${PROJECT_DIR}/venv/bin/python"
 
 CONFIG="config/micro_near_v1_1m.json"
 MODEL_PATH="models/near_basis_qlearning.json"
-ENV_FILE=".runtime/kucoin.env"
+ENV_FILE=".runtime/project.env"
 EPISODES="80"
 START=""
 END=""
@@ -76,7 +76,7 @@ case "$ACTION" in
   env-template)
     mkdir -p "${PROJECT_DIR}/.runtime"
     if [[ ! -f "${PROJECT_DIR}/${ENV_FILE}" ]]; then
-      cp "${PROJECT_DIR}/examples/kucoin.env.example" "${PROJECT_DIR}/${ENV_FILE}"
+      cp "${PROJECT_DIR}/examples/project.env.example" "${PROJECT_DIR}/${ENV_FILE}"
       echo "Created: ${PROJECT_DIR}/${ENV_FILE}"
     else
       echo "Already exists: ${PROJECT_DIR}/${ENV_FILE}"

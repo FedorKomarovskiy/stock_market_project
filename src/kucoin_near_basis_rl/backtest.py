@@ -75,7 +75,7 @@ def rollout_rl_positions(
 
 def backtest_positions(
     feature_frame: pd.DataFrame,
-    positions: Sequence[int] | pd.Series,
+    positions: Sequence[float] | pd.Series,
     fee_rate_per_rebalance: float,
     risk_penalty: float,
     initial_capital: float,
@@ -86,9 +86,9 @@ def backtest_positions(
     if len(positions) != len(feature_frame):
         raise ValueError("positions length must match feature_frame length.")
 
-    position_values = [int(value) for value in positions]
+    position_values = [float(value) for value in positions]
     equity = float(initial_capital)
-    previous_position = 0
+    previous_position = 0.0
     rows: list[dict[str, float | int | str]] = []
 
     for idx in range(len(feature_frame) - 1):
@@ -111,8 +111,8 @@ def backtest_positions(
                 "timestamp": next_row["timestamp"],
                 "basis": float(next_row["basis"]),
                 "basis_zscore": float(row["basis_zscore"]),
-                "previous_position": int(previous_position),
-                "target_position": int(target_position),
+                "previous_position": float(previous_position),
+                "target_position": float(target_position),
                 "basis_change": basis_change,
                 "gross_return": gross_return,
                 "fee_cost": fee_cost,
@@ -189,3 +189,81 @@ def calculate_strategy_metrics(
         "exposure_ratio": exposure_ratio,
         "hit_rate": hit_rate,
     }
+
+
+def estimate_kelly_fraction(
+    feature_frame: pd.DataFrame,
+    positions: Sequence[float] | pd.Series,
+    fee_rate_per_rebalance: float,
+    risk_penalty: float,
+    max_fraction: float,
+    fraction_multiplier: float = 0.5,
+    min_active_rows: int = 24,
+) -> float:
+    if len(feature_frame) < 2 or len(positions) != len(feature_frame):
+        return 0.0
+    trial = backtest_positions(
+        feature_frame=feature_frame,
+        positions=positions,
+        fee_rate_per_rebalance=fee_rate_per_rebalance,
+        risk_penalty=risk_penalty,
+        initial_capital=1.0,
+        strategy_name="kelly_calibration",
+    )
+    history = trial.history
+    active = history.loc[history["target_position"].abs() > 1e-9, "strategy_return"].astype(float)
+    if len(active) < int(min_active_rows):
+        return min(1.0, float(max_fraction))
+    mean_return = float(active.mean())
+    variance = float(active.var(ddof=0))
+    if variance <= 1e-12 or mean_return <= 0.0:
+        return 0.0
+    raw_fraction = mean_return / variance
+    bounded_fraction = raw_fraction / (1.0 + abs(raw_fraction))
+    scaled_fraction = float(max_fraction) * float(fraction_multiplier) * bounded_fraction
+    return float(np.clip(scaled_fraction, 0.0, float(max_fraction)))
+
+
+def apply_kelly_overlay(
+    positions: Sequence[float] | pd.Series,
+    kelly_fraction: float,
+) -> list[float]:
+    scale = float(np.clip(kelly_fraction, 0.0, np.inf))
+    return [float(value) * scale for value in positions]
+
+
+def combine_backtest_results(
+    results: Sequence[BacktestResult],
+    initial_capital: float,
+    strategy_name: str,
+) -> BacktestResult:
+    histories = [result.history.copy() for result in results if result.history is not None and not result.history.empty]
+    if not histories:
+        return BacktestResult(
+            history=pd.DataFrame(),
+            metrics=calculate_strategy_metrics(
+                history=pd.DataFrame(),
+                initial_capital=initial_capital,
+                strategy_name=strategy_name,
+            ),
+        )
+
+    combined = pd.concat(histories, ignore_index=True)
+    combined["timestamp"] = pd.to_datetime(combined["timestamp"], utc=True)
+    combined = combined.sort_values("timestamp").reset_index(drop=True)
+    equity = float(initial_capital)
+    equities: list[float] = []
+    for strategy_return in combined["strategy_return"].astype(float):
+        equity *= max(1e-9, 1.0 + float(strategy_return))
+        equities.append(float(equity))
+    combined["equity"] = equities
+    combined["strategy"] = strategy_name
+    combined["decision_index"] = np.arange(len(combined), dtype=int)
+    return BacktestResult(
+        history=combined,
+        metrics=calculate_strategy_metrics(
+            history=combined,
+            initial_capital=initial_capital,
+            strategy_name=strategy_name,
+        ),
+    )
