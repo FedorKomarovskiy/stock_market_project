@@ -1,4 +1,22 @@
-# KuCoin NEAR Basis RL Project
+# Stock Market Project
+
+## Notebook for review
+
+Main submission notebook:
+
+- `notebooks/stock_market_volatility_submission.ipynb`
+
+The notebook contains the full end-to-end solution in one place:
+
+- step-by-step comments for each stage;
+- forecast vs realized volatility plots;
+- model visualizations;
+- metric tables including `Sharpe` and `Max Drawdown`;
+- Monte Carlo volatility simulation.
+
+The original repository modules are still available below, but the notebook above is the primary file for review.
+
+## Original repository structure
 
 Research and execution repository for basis trading on KuCoin:
 - spot: `NEAR-USDT`
